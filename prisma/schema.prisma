@@ -1,0 +1,58 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // Выберите вашу базу данных (PostgreSQL, MySQL, SQLite и т. д.)
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Связь с другими моделями
+  tasks       Task[]       @relation("AssignedTasks")
+  submissions Submission[]
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String
+  deadline    DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Связь с другими моделями
+  authorId  Int
+  author    User       @relation("AssignedTasks", fields: [authorId], references: [id])
+  submissions Submission[]
+}
+
+model Submission {
+  id          Int       @id @default(autoincrement())
+  fileUrl     String
+  comment     String?   // Комментарий преподавателя (опционально)
+  grade       Int?      // Оценка (опционально)
+  createdAt   DateTime  @default(now())
+
+  // Связь с другими моделями
+  taskId Int
+  task   Task @relation(fields: [taskId], references: [id])
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id])
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
