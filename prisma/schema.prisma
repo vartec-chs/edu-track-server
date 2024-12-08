@@ -12,17 +12,143 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
-  firstName String
-  lastName  String
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
   surname   String?
-  group     String?
-  role      Role     @default(STUDENT)
+  roles     Role[]   @default([])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  student Student?
+  teacher Teacher?
+
+  @@unique([email], map: "email_index")
+  @@index([email])
+  @@map("users")
+}
+
+model Student {
+  id      String  @id @default(uuid())
+  userId  String  @unique
+  groupId String?
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group       Group?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  submissions Submission[]
+
+  @@map("students")
+}
+
+model Teacher {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects Subject[] @relation("TeacherSubjects", map: "teacher_subjects")
+  groups   Group[]   @relation("TeacherGroups", map: "teacher_groups")
+  tasks    Task[]
+
+  @@map("teachers")
+}
+
+model Subject {
+  id   String @id @default(uuid())
+  name String @unique
+  code String @unique // Например, код предмета "MATH101"
+
+  teachers Teacher[] @relation("TeacherSubjects", map: "teacher_subjects") // Связь с учителями
+  tasks    Task[]
+
+  @@map("subjects")
+}
+
+model Group {
+  id             String @id @default(uuid())
+  specialization String
+  shortName      String @map("short_name")
+  number         Int
+
+  teachers Teacher[] @relation("TeacherGroups", map: "teacher_groups") // Связь с преподавателями
+  students Student[]
+  tasks    Task[]    @relation("TaskGroups", map: "task_groups") // Связь с заданиями (многие ко многим)
+
+  @@map("groups")
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  deadline    DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  authorId  String
+  subjectId String // Связь с предметом
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  author  Teacher @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  groups  Group[] @relation("TaskGroups", map: "task_groups") // Связь с группами (многие ко многим)
+
+  methodFiles TaskFile[] // Связь с методическими файлами
+  submissions Submission[]
+
+  @@map("tasks")
+}
+
+model TaskFile {
+  id        Int      @id @default(autoincrement())
+  taskId    Int
+  fileName  String // Отображаемое имя файла
+  path      String // Путь к файлу на сервере
+  mimeType  String? // Тип файла (например, application/pdf)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_files")
+}
+
+model Submission {
+  id        Int              @id @default(autoincrement())
+  filePath  String // Основной файл
+  comment   String? // Комментарий преподавателя (опционально)
+  grade     Int? // Оценка (опционально)
+  status    SubmissionStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+
+  taskId    Int
+  studentId String
+
+  task    Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  additionalFiles SubmissionFile[] // Дополнительные файлы
+
+  @@map("submissions")
+}
+
+model SubmissionFile {
+  id           Int      @id @default(autoincrement())
+  submissionId Int
+  fileName     String // Отображаемое имя файла
+  path         String // Путь к файлу на сервере
+  mimeType     String? // Тип файла (например, image/png)
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+
+  @@map("submission_files")
 }
 
 enum Role {
   STUDENT
   TEACHER
   ADMIN
+}
+
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }

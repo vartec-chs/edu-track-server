@@ -18,8 +18,6 @@ export class CreateUserDto {
 
 	@ApiPropertyOptional()
 	@IsString()
-	@IsNotEmpty()
-	@MinLength(2)
 	@MaxLength(43)
 	@IsOptional()
 	surname: string
