@@ -9,8 +9,11 @@ import { TeachersModule } from './teachers/teachers.module'
 import { GroupsModule } from './groups/groups.module'
 import { StudentsModule } from './students/students.module'
 import { AdminsModule } from './admins/admins.module'
-import { SubjectsModule } from './subjects/subjects.module';
+import { SubjectsModule } from './subjects/subjects.module'
+import { FilesModule } from './files/files.module'
 import configuration from '@/config/configuration'
+import { MulterModule } from '@nestjs/platform-express'
+import { diskStorage } from 'multer'
 
 @Module({
 	imports: [
@@ -18,6 +21,13 @@ import configuration from '@/config/configuration'
 			isGlobal: true,
 			cache: true,
 			load: [configuration],
+		}),
+		MulterModule.registerAsync({
+			useFactory: () => ({
+				storage: diskStorage({
+					destination: './uploads',
+				}),
+			}),
 		}),
 		PrismaModule,
 		UsersModule,
@@ -28,6 +38,7 @@ import configuration from '@/config/configuration'
 		StudentsModule,
 		AdminsModule,
 		SubjectsModule,
+		FilesModule,
 	],
 })
 export class AppModule {}

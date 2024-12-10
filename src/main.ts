@@ -3,31 +3,42 @@ import { AppModule } from '@/app.module'
 import { ValidationPipe } from '@nestjs/common'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import cookieParser from 'cookie-parser'
+import { ConfigService } from '@nestjs/config'
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule)
 
-	app.setGlobalPrefix('api')
+	const configService = app.get(ConfigService)
+
+	app.setGlobalPrefix(configService.getOrThrow<string>('API_PREFIX'))
 
 	const config = new DocumentBuilder()
-		.setTitle('Edu Track API')
-		.setVersion('1.0')
-		.addBearerAuth()
+		.setTitle(`${configService.getOrThrow<string>('APP_NAME')} API`)
+		.setVersion(configService.getOrThrow<string>('APP_VERSION'))
 		.build()
 	const document = SwaggerModule.createDocument(app, config)
 	SwaggerModule.setup('docs', app, document, {
 		useGlobalPrefix: true,
 	})
 
-	app.useGlobalPipes(new ValidationPipe())
-	app.use(cookieParser())
+	app.useGlobalPipes(
+		new ValidationPipe({
+			transform: true,
+			whitelist: true,
+		}),
+	)
+	app.use(cookieParser(configService.getOrThrow<string>('COOKIE_SECRET')))
 
 	app.enableCors({
-		origin: '*',
+		origin: configService.getOrThrow<string>('ORIGIN'),
 		credentials: true,
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+		allowedHeaders: '*',
 	})
 
-	await app.listen(process.env.PORT ?? 3000)
+	await app.listen(
+		configService.getOrThrow<number>('PORT'),
+		configService.getOrThrow<string>('HOST'),
+	)
 }
 bootstrap()

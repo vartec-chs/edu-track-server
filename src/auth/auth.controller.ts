@@ -7,6 +7,9 @@ import { Public } from './decorator/public.decorator'
 import { Roles } from './decorator/roles.decorator'
 import { Role } from '@prisma/client'
 import { SetRolesDto } from './dto/set-roles.dto'
+import { User } from './decorator/user.decorator'
+import { User as PrismaUser } from '@prisma/client'
+import { JWTUser } from '@/global'
 
 @Controller('auth')
 export class AuthController {
@@ -36,11 +39,11 @@ export class AuthController {
 	}
 
 	@Get('profile')
-	async getProfile(@Request() req) {
+	async getProfile(@User() user: JWTUser) {
 		return {
 			status: 'success',
 			message: 'Профиль успешно получен',
-			data: req.user,
+			data: user,
 		}
 	}
 
